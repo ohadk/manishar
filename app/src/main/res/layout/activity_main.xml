@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Spinner
+        android:id="@+id/spinner_category"
+        android:layout_width="181dp"
+        android:layout_height="42dp"
+        android:layout_marginLeft="120dp"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="@id/editText_amount"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.206"
+        tools:ignore="UnknownId" />
+
+    <EditText
+        android:id="@+id/editText_amount"
+        android:layout_width="160dp"
+        android:layout_height="34dp"
+        android:gravity="center"
+        android:hint="סכום העסקה"
+        android:textSize="10sp"
+        android:inputType="number"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.553"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/spinner_category"
+        app:layout_constraintVertical_bias="0.123"
+        tools:ignore="UnknownId" />
+
+    <EditText
+        android:id="@+id/editText_comments"
+        android:layout_width="158dp"
+        android:layout_height="35dp"
+        android:gravity="center"
+        android:hint="הערות"
+        android:textSize="10sp"
+        android:inputType="text"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.548"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/editText_amount"
+        app:layout_constraintVertical_bias="0.128"
+        tools:ignore="NotSibling" />
+
+    <Button
+        android:id="@+id/button_done"
+        android:layout_width="158dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="52dp"
+        android:gravity="center"
+        android:text="הזן עסקה"
+        app:layout_constraintHorizontal_bias="0.548"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/editText_comments"
+        tools:ignore="UnknownId" />
+
+
+</android.support.constraint.ConstraintLayout>
