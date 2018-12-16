@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "541077535430",
+    "firebase_url": "https://manishar-9e2d4.firebaseio.com",
+    "project_id": "manishar-9e2d4",
+    "storage_bucket": "manishar-9e2d4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:541077535430:android:e5255f46f53a9e4e",
+        "android_client_info": {
+          "package_name": "com.manishar.katzav.manishar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "541077535430-up7mvptgbrr5o76pqdo82gmoaav64m0o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.manishar.katzav.manishar",
+            "certificate_hash": "bed7c180b24f8f217e912bdc6fa71991eca5a595"
+          }
+        },
+        {
+          "client_id": "541077535430-01dnogi5svp0pj4mis6tfk3o3hgtsvme.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhp-0jN5GaDAcU0f7eNuoZSzScOyayZYA"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "541077535430-01dnogi5svp0pj4mis6tfk3o3hgtsvme.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "541077535430-j2r0gqgtg9u19vvp2n2kthpnl65q7n5t.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "OhadKatzav.MaNishar"
+              }
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
