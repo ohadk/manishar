@@ -6,11 +6,12 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.nfc.NfcAdapter;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -31,6 +32,7 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -70,35 +72,33 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    interface ReadCallback {
-        void callbackCall(ValueRange result);
-    }
+    private class runOnSheets extends AsyncTask<String, Void, ValueRange> {
+        String method;
 
-    private class runOnSheets extends Thread {
-        private String cell_range = "";
-        ReadCallback cb;
+        runOnSheets(String method_call) {this.method = method_call;}
 
-        public runOnSheets(String s) {
-            this.cell_range = s;
-            //this.cb = cb;
-        }
-
-        public void run() {
-            //String range = "'data'!B45:B45";
-            ValueRange result;
+        @Override
+        public ValueRange doInBackground(String... s) {
+            ValueRange result = null;
             try {
                 service = getSheetsService();
-                result = service.spreadsheets().values().get(spreadsheetId, this.cell_range).execute();
-                cb.callbackCall(result);
-                //int numRows = result.getValues() != null ? result.getValues().size() : 0;
-                //Log.i("SHEETS", Integer.toString(numRows) + " rows retrieved with value: " + parseSingleCellData(result));
+                result = service.spreadsheets().values().get(spreadsheetId, s[0]).execute();
             } catch (UserRecoverableAuthIOException e) {
                 startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
             } catch (IOException e) {
                 Log.e("SHEETS", "Error reading cell");
                 e.printStackTrace();
             }
+            return result;
         }
+
+        @Override
+        protected void onPostExecute(ValueRange result) {
+            if (method == "Single") parseSingleCellData(result);
+            else if (method == "Multi") parseMultipleCellData(result);
+        }
+
+
     }
 
     private void chooseAccount() {
@@ -158,16 +158,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else {
-            runOnSheets sheets_thread = new runOnSheets("'data'!B45:B45");
-            sheets_thread.start();
-            //sheets_thread.run();
-            sheets_thread.cb = new ReadCallback() {
-                @Override
-                public void callbackCall(ValueRange result) {
-                    Log.i("SHEETS",  " rows retrieved with value: " + parseSingleCellData(result));
-                }
-            };
-
+            new runOnSheets("Multi").execute("'data'!L2:L39");
         }
     }
 
@@ -220,15 +211,7 @@ public class MainActivity extends AppCompatActivity {
         spinner_category = findViewById(R.id.spinner_category);
 
         //Get the list of categories from sheets
-        runOnSheets sheets_thread = new runOnSheets("'data'!L2:L20");
-        sheets_thread.start();
-
-        sheets_thread.cb = new ReadCallback() {
-            @Override
-            public void callbackCall(ValueRange data) {
-                Log.i("SHEETS",  " rows retrieved with value: " + parseMultipleCellData(data));
-            }
-        };
+        new runOnSheets("Single").execute("'data'!L2:L20");
 
         String[] items = new String[]{"1", "2", "three"};
         //create an adapter to describe how the items are displayed, adapters are used in several places in android.
@@ -281,15 +264,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String parseMultipleCellData(ValueRange range) {
-        Object[] objectArray = range.getValues().toArray();
-        String[] cat_arr = new String[objectArray.length];
+        List<List<Object>> objectArray = range.getValues();
+        ArrayList<String> categories = new ArrayList<>();
+        for (List cur_row: objectArray) {
+            if (cur_row.size() > 0) {
+                String a = (String) cur_row.get(0);
+                categories.add(a);
+            }
+        }
+         String[] cat_arr = (String[]) categories.toArray();
         int index = 0;
 
         //Object[] objectArray = cat_list.toArray();
         //String[] stringArray = Arrays.copyOf(objectArray, objectArray.length, String[].class);
-        for (Object cat : objectArray) {
-            Log.i("SHEETS",  "cat name: " + cat.toString());
-        }
         return "";
         //String[] cat_arr = (String[]) cat_list.toArray(new String[0]);
         //return cat_arr;
