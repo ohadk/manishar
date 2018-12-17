@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.nfc.NfcAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -31,6 +32,7 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
@@ -68,15 +70,28 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    interface ReadCallback {
+        void callbackCall(ValueRange result);
+    }
+
     private class runOnSheets extends Thread {
+        private String cell_range = "";
+        ReadCallback cb;
+
+        public runOnSheets(String s) {
+            this.cell_range = s;
+            //this.cb = cb;
+        }
+
         public void run() {
-            String range = "B45:B45";
+            //String range = "'data'!B45:B45";
             ValueRange result;
             try {
                 service = getSheetsService();
-                result = service.spreadsheets().values().get(spreadsheetId, range).execute();
-                int numRows = result.getValues() != null ? result.getValues().size() : 0;
-                Log.i("SHEETS", Integer.toString(numRows) + " rows retrieved.");
+                result = service.spreadsheets().values().get(spreadsheetId, this.cell_range).execute();
+                cb.callbackCall(result);
+                //int numRows = result.getValues() != null ? result.getValues().size() : 0;
+                //Log.i("SHEETS", Integer.toString(numRows) + " rows retrieved with value: " + parseSingleCellData(result));
             } catch (UserRecoverableAuthIOException e) {
                 startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
             } catch (IOException e) {
@@ -143,9 +158,16 @@ public class MainActivity extends AppCompatActivity {
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else {
-            runOnSheets sheets_thread = new runOnSheets();
-            //sheets_thread.run();
+            runOnSheets sheets_thread = new runOnSheets("'data'!B45:B45");
             sheets_thread.start();
+            //sheets_thread.run();
+            sheets_thread.cb = new ReadCallback() {
+                @Override
+                public void callbackCall(ValueRange result) {
+                    Log.i("SHEETS",  " rows retrieved with value: " + parseSingleCellData(result));
+                }
+            };
+
         }
     }
 
@@ -196,7 +218,18 @@ public class MainActivity extends AppCompatActivity {
     public void initCategorySpinner() {
         //get the spinner from the xml.
         spinner_category = findViewById(R.id.spinner_category);
-        //create a list of items for the spinner.
+
+        //Get the list of categories from sheets
+        runOnSheets sheets_thread = new runOnSheets("'data'!L2:L20");
+        sheets_thread.start();
+
+        sheets_thread.cb = new ReadCallback() {
+            @Override
+            public void callbackCall(ValueRange data) {
+                Log.i("SHEETS",  " rows retrieved with value: " + parseMultipleCellData(data));
+            }
+        };
+
         String[] items = new String[]{"1", "2", "three"};
         //create an adapter to describe how the items are displayed, adapters are used in several places in android.
         //There are multiple variations of this, but this is the basic variant.
@@ -233,4 +266,34 @@ public class MainActivity extends AppCompatActivity {
 
         });
     }
+
+    /* Get the value from the ValueRange object
+     * {
+            "range": string,
+            "majorDimension": enum(Dimension),
+            "values": [
+            array
+            ]
+        }
+    */
+    public String parseSingleCellData(ValueRange range) {
+        return String.valueOf(range.getValues().get(0).get(0));
+    }
+
+    public String parseMultipleCellData(ValueRange range) {
+        Object[] objectArray = range.getValues().toArray();
+        String[] cat_arr = new String[objectArray.length];
+        int index = 0;
+
+        //Object[] objectArray = cat_list.toArray();
+        //String[] stringArray = Arrays.copyOf(objectArray, objectArray.length, String[].class);
+        for (Object cat : objectArray) {
+            Log.i("SHEETS",  "cat name: " + cat.toString());
+        }
+        return "";
+        //String[] cat_arr = (String[]) cat_list.toArray(new String[0]);
+        //return cat_arr;
+        //return Arrays.copyOf(range.getValues().toArray(), range.getValues().size(), String[].class);;
+    }
+
 }
