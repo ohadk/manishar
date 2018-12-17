@@ -11,7 +11,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -32,6 +31,7 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -60,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
 
         editText_amount = findViewById(R.id.editText_amount);
         editText_comments = findViewById(R.id.editText_comments);
-        initCategorySpinner();
         addListenerOnButton();
         addListenerOnSpinnerItemSelection();
 
@@ -94,13 +93,29 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(ValueRange result) {
-            if (method == "Single") parseSingleCellData(result);
-            else if (method == "Categories") {
-                String[] categories = parseMultipleCellData(result);
-            }
+            postSheetsAction(method, result);
         }
+    }
 
+    private void postSheetsAction(String method, ValueRange result) {
+        try {
+            Class[] args = new Class[1];
+            args[0] = ValueRange.class;
+            MainActivity.class.getDeclaredMethod(method, args).invoke(this, result);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            System.out.format("Invocation of %s failed because of: %s%n", method, cause.getMessage());
+            e.printStackTrace();
+        }
+    }
 
+    private void populateCategories(ValueRange result) {
+        String[] categories = parseMultipleCellData(result);
+        initCategorySpinner(categories);
     }
 
     private void chooseAccount() {
@@ -160,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else {
-            new runOnSheets("Categories").execute("'data'!L2:L39");
+            new runOnSheets("populateCategories").execute("'data'!L2:L39");
         }
     }
 
@@ -208,14 +223,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // add items into spinner dynamically
-    public void initCategorySpinner() {
+    public void initCategorySpinner(String[] items) {
         //get the spinner from the xml.
         spinner_category = findViewById(R.id.spinner_category);
 
         //Get the list of categories from sheets
         new runOnSheets("Single").execute("'data'!L2:L20");
 
-        String[] items = new String[]{"1", "2", "three"};
         //create an adapter to describe how the items are displayed, adapters are used in several places in android.
         //There are multiple variations of this, but this is the basic variant.
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, items);
@@ -274,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
                 categories.add(a);
             }
         }
-        return (String[]) categories.toArray();
+        return categories.toArray(new String[categories.size()]);
     }
 
 }
