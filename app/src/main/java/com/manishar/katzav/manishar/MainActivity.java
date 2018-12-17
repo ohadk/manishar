@@ -95,7 +95,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(ValueRange result) {
             if (method == "Single") parseSingleCellData(result);
-            else if (method == "Multi") parseMultipleCellData(result);
+            else if (method == "Categories") {
+                String[] categories = parseMultipleCellData(result);
+            }
         }
 
 
@@ -158,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else {
-            new runOnSheets("Multi").execute("'data'!L2:L39");
+            new runOnSheets("Categories").execute("'data'!L2:L39");
         }
     }
 
@@ -263,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
         return String.valueOf(range.getValues().get(0).get(0));
     }
 
-    public String parseMultipleCellData(ValueRange range) {
+    public String[] parseMultipleCellData(ValueRange range) {
         List<List<Object>> objectArray = range.getValues();
         ArrayList<String> categories = new ArrayList<>();
         for (List cur_row: objectArray) {
@@ -272,15 +274,7 @@ public class MainActivity extends AppCompatActivity {
                 categories.add(a);
             }
         }
-         String[] cat_arr = (String[]) categories.toArray();
-        int index = 0;
-
-        //Object[] objectArray = cat_list.toArray();
-        //String[] stringArray = Arrays.copyOf(objectArray, objectArray.length, String[].class);
-        return "";
-        //String[] cat_arr = (String[]) cat_list.toArray(new String[0]);
-        //return cat_arr;
-        //return Arrays.copyOf(range.getValues().toArray(), range.getValues().size(), String[].class);;
+        return (String[]) categories.toArray();
     }
 
 }
