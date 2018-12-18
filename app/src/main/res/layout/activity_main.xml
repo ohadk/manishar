@@ -13,6 +13,7 @@
         android:layout_marginLeft="120dp"
         android:layout_marginTop="16dp"
         android:gravity="center"
+        android:textAlignment="center"
         app:layout_constraintBottom_toBottomOf="@id/editText_amount"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"

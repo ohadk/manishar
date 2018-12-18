@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -28,12 +29,18 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
+import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest;
+import com.google.api.services.sheets.v4.model.BatchUpdateValuesResponse;
+import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
@@ -51,6 +58,13 @@ public class MainActivity extends AppCompatActivity {
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
+    private final static String DATE_COLUMN_STR = "A";
+    private final static String CATEGORY_COLUMN_STR = "D";
+    private final static String AMOUNT_COLUMN_STR = "E";
+    private final static String COMMENT_COLUMN_STR = "F";
+    private final static String ROW_DATA_SHEET = "'נתונים'!";
+    static String row_str = "";
+    static int row_int = 0;
 
 
     @Override
@@ -68,20 +82,105 @@ public class MainActivity extends AppCompatActivity {
                 .setBackOff(new ExponentialBackOff());
 
         getAccount();
-
     }
 
-    private class runOnSheets extends AsyncTask<String, Void, ValueRange> {
+    private void getAviloableRaw(ValueRange result) {
+        String row = parseSingleCellData(result);
+        if (!row.isEmpty()) {
+            this.row_str = row;
+            this.row_int = Integer.parseInt(row_str);
+        } else { /* We dont have avilable row --> pop msg*/
+
+        }
+    }
+
+    private void increaseRow() {
+        this.row_int++;
+        this.row_str = String.valueOf(this.row_int);
+    }
+
+
+    private class writeToSheets extends AsyncTask<String, Void, BatchUpdateValuesResponse> {
         String method;
 
-        runOnSheets(String method_call) {this.method = method_call;}
+        writeToSheets(String method_call) {this.method = method_call;}
+
+        /* params is array of strings that holds the parameters
+         * params[0]: range
+         * params[1] ... params[n]: write data */
+        @Override
+        public BatchUpdateValuesResponse doInBackground(String... params) {
+            BatchUpdateValuesResponse result = null;
+            if (!params[1].isEmpty()) {
+                service = getSheetsService();
+                Date c = Calendar.getInstance().getTime();
+                SimpleDateFormat curFormater = new SimpleDateFormat("dd/MM/yyyy");
+                String strDate = curFormater.format(c);
+                Object post_date[] = new String[1];
+                post_date[0]=strDate;
+
+                List<List<Object>> date = Arrays.asList(
+                        Arrays.asList(post_date)               // Additional rows ...
+                );
+
+                String dateRange =  ROW_DATA_SHEET + DATE_COLUMN_STR +
+                        row_str +":" + DATE_COLUMN_STR + row_str;
+
+                Object post_vals[] = new String[params.length - 1];
+                int insertion_index = 0;
+                for (int param_index = 1; param_index<params.length; param_index++) {
+                    post_vals[insertion_index++] = params[param_index];
+                }
+
+                List<List<Object>> values = Arrays.asList(
+                        Arrays.asList(post_vals)               // Additional rows ...
+                );
+
+                List<ValueRange> data = new ArrayList<ValueRange>();
+                data.add(new ValueRange()
+                        .setRange(params[0])
+                        .setValues(values));
+
+                data.add(new ValueRange()
+                        .setRange(dateRange)
+                        .setValues(date));
+
+
+                BatchUpdateValuesRequest body = new BatchUpdateValuesRequest()
+                        .setValueInputOption("RAW")
+                        .setData(data);
+                try {
+                    result = service.spreadsheets().values().batchUpdate(spreadsheetId, body)
+                            .execute();
+                } catch (UserRecoverableAuthIOException e) {
+                    startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
+                } catch (IOException e) {
+                    Log.e("SHEETS", "Error writing cell");
+                    e.printStackTrace();
+                }
+            }
+            return result;
+        }
 
         @Override
-        public ValueRange doInBackground(String... s) {
+        protected void onPostExecute(BatchUpdateValuesResponse result) {
+            writeSheetsAction_cb(method, result);
+        }
+    }
+
+
+    private class readFromSheets extends AsyncTask<String, Void, ValueRange> {
+        String method;
+        readFromSheets(String method_call) {this.method = method_call;}
+
+        /* params is array of strings that holds the parameters
+         * params[0]: range */
+        @Override
+        public ValueRange doInBackground(String... params) {
             ValueRange result = null;
+            service = getSheetsService();
             try {
-                service = getSheetsService();
-                result = service.spreadsheets().values().get(spreadsheetId, s[0]).execute();
+                result = service.spreadsheets().values().get(spreadsheetId, params[0]).execute();
             } catch (UserRecoverableAuthIOException e) {
                 startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
             } catch (IOException e) {
@@ -93,11 +192,11 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(ValueRange result) {
-            postSheetsAction(method, result);
+            readSheetsAction_cb(method, result);
         }
     }
 
-    private void postSheetsAction(String method, ValueRange result) {
+    private void readSheetsAction_cb(String method, ValueRange result) {
         try {
             Class[] args = new Class[1];
             args[0] = ValueRange.class;
@@ -112,6 +211,23 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    private void writeSheetsAction_cb(String method, BatchUpdateValuesResponse result) {
+        try {
+            Class[] args = new Class[1];
+            args[0] = BatchUpdateValuesResponse.class;
+            MainActivity.class.getDeclaredMethod(method, args).invoke(this, result);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            System.out.format("Invocation of %s failed because of: %s%n", method, cause.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 
     private void populateCategories(ValueRange result) {
         String[] categories = parseMultipleCellData(result);
@@ -175,7 +291,8 @@ public class MainActivity extends AppCompatActivity {
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else {
-            new runOnSheets("populateCategories").execute("'data'!L2:L39");
+            new readFromSheets("populateCategories").execute("'data'!L2:L39");
+            new readFromSheets("getAviloableRaw").execute("'data'!B45:B45");
         }
     }
 
@@ -228,11 +345,13 @@ public class MainActivity extends AppCompatActivity {
         spinner_category = findViewById(R.id.spinner_category);
 
         //Get the list of categories from sheets
-        new runOnSheets("Single").execute("'data'!L2:L20");
+        //new runOnSheets("Single").execute("'data'!L2:L20");
 
         //create an adapter to describe how the items are displayed, adapters are used in several places in android.
         //There are multiple variations of this, but this is the basic variant.
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, items);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
         //set the spinners adapter to the previously created one.
         spinner_category.setAdapter(adapter);
 
@@ -255,15 +374,48 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                Toast.makeText(MainActivity.this,
-                        "קטגוריה : " + String.valueOf(spinner_category.getSelectedItem()) +
-                        "\nסכום : " + String.valueOf(editText_amount.getText()),
-                        Toast.LENGTH_SHORT).show();
+                String comment = String.valueOf(editText_comments.getText());
+                String category = String.valueOf(spinner_category.getSelectedItem());
+                String amount = String.valueOf(editText_amount.getText());
 
-                /* Post to sheets */
+                /* Validate the amount and category are not empty
+                 * and post to sheets
+                  * The parameters order is very importent since
+                  * the sheets columns are fixed - category, amount, comment */
+                if (!category.isEmpty() && !amount.isEmpty() ) {
+                    String rangeToWrite =  ROW_DATA_SHEET + CATEGORY_COLUMN_STR +
+                                            row_str +":" + COMMENT_COLUMN_STR + row_str;
+                    new writeToSheets("writeExpanseDone").execute(rangeToWrite, category, amount, comment);
+
+                    hideKeyboard();
+
+                    Toast.makeText(MainActivity.this,
+                            "קטגוריה : " + category + "\nסכום : " + amount,
+                            Toast.LENGTH_SHORT).show();
+                } else { /* Empty values */
+
+                }
             }
 
         });
+    }
+
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(editText_comments.getWindowToken(), 0);
+    }
+
+    private void writeExpanseDone(BatchUpdateValuesResponse result) {
+        /* While we update expanse we update 4 columns for
+         category, amount, comments and date */
+        if (result.getTotalUpdatedColumns() == 4) { /* success */
+            editText_amount.getText().clear();
+            editText_comments.getText().clear();
+            increaseRow();
+            Toast.makeText(MainActivity.this,"הוצאה הוזנה בהצלחה",Toast.LENGTH_SHORT).show();
+        } else { /* failed */
+            Toast.makeText(MainActivity.this,"הוצאה לא הוזנה",Toast.LENGTH_SHORT).show();
+        }
     }
 
     /* Get the value from the ValueRange object
