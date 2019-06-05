@@ -52,7 +52,8 @@ public class MainActivity extends AppCompatActivity {
     GoogleAccountCredential mCredential;
     private Button btnSubmit;
     private EditText editText_amount, editText_comments;
-    private String spreadsheetId = "1DKNC8Rsd7Wqav59wblqbCK6WU9IDdnHQm7qOjhgJxy4";
+    private String spreadsheetId = "1DKNC8Rsd7Wqav59wblqbCK6WU9IDdnHQm7qOjhgJxy4"; //Ohads ID
+    //private String spreadsheetId = "10bcEclCNRGLlorphOJKyJCUaJTsKlmF5YAFhkp-sQMw"; //Adams ID
     private static final String PREF_ACCOUNT_NAME = "accountName";
     static final int REQUEST_ACCOUNT_PICKER = 1000;
     static final int REQUEST_AUTHORIZATION = 1001;
@@ -126,6 +127,10 @@ public class MainActivity extends AppCompatActivity {
                 String dateRange =  ROW_DATA_SHEET + DATE_COLUMN_STR +
                         row_str +":" + DATE_COLUMN_STR + row_str;
 
+                String amountRange =  ROW_DATA_SHEET + AMOUNT_COLUMN_STR +
+                        row_str +":" + AMOUNT_COLUMN_STR + row_str;
+
+
                 Object post_vals[] = new String[params.length - 1];
                 int insertion_index = 0;
                 for (int param_index = 1; param_index<params.length; param_index++) {
@@ -145,6 +150,18 @@ public class MainActivity extends AppCompatActivity {
                         .setRange(dateRange)
                         .setValues(date));
 
+                /* Here, we are rewrote the amount column since we need to convert it to
+                 * integer. So We add one more write that will rewrite the coulumn */
+                Object post_amount[] = new Integer[1];
+                post_amount[0]=Integer.parseInt(params[2]);
+
+                List<List<Object>> amount = Arrays.asList(
+                        Arrays.asList(post_amount)               // Additional rows ...
+                );
+
+                data.add(new ValueRange()
+                        .setRange(amountRange)
+                        .setValues(amount));
 
                 BatchUpdateValuesRequest body = new BatchUpdateValuesRequest()
                         .setValueInputOption("RAW")
