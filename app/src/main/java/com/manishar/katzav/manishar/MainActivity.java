@@ -257,7 +257,9 @@ public class MainActivity extends AppCompatActivity {
                     .getString(PREF_ACCOUNT_NAME, null);
             if (accountName != null) {
                 mCredential.setSelectedAccountName(accountName);
-                getAccount();
+                //getAccount();
+                new readFromSheets("populateCategories").execute("'data'!L2:L39");
+                new readFromSheets("getAviloableRaw").execute("'data'!B45:B45");
             } else {
                 // Start a dialog from which the user can choose an account
                 startActivityForResult(
