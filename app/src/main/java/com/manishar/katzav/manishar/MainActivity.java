@@ -258,6 +258,12 @@ public class MainActivity extends AppCompatActivity {
             if (accountName != null) {
                 mCredential.setSelectedAccountName(accountName);
                 //getAccount();
+                if (mCredential.getSelectedAccount() == null) {
+                    // Start a dialog from which the user can choose an account
+                    startActivityForResult(
+                            mCredential.newChooseAccountIntent(),
+                            REQUEST_ACCOUNT_PICKER);
+                }
                 new readFromSheets("populateCategories").execute("'data'!L2:L39");
                 new readFromSheets("getAviloableRaw").execute("'data'!B45:B45");
             } else {
