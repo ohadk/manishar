@@ -33,6 +33,7 @@ import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import com.google.firebase.FirebaseApp;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -53,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnSubmit;
     private EditText editText_amount, editText_comments;
     private String spreadsheetId = "1DKNC8Rsd7Wqav59wblqbCK6WU9IDdnHQm7qOjhgJxy4"; //Ohads ID
-    //private String spreadsheetId = "10bcEclCNRGLlorphOJKyJCUaJTsKlmF5YAFhkp-sQMw"; //Adams ID
+    //private String spreadsheetId = "10bcEclCNRGLlorphOJKyJCUaJTsKlmF5YAFhkp-sQMw"; //Niran ID
     private static final String PREF_ACCOUNT_NAME = "accountName";
     static final int REQUEST_ACCOUNT_PICKER = 1000;
     static final int REQUEST_AUTHORIZATION = 1001;
@@ -66,12 +67,13 @@ public class MainActivity extends AppCompatActivity {
     private final static String ROW_DATA_SHEET = "'נתונים'!";
     static String row_str = "";
     static int row_int = 0;
-
+    static String google_api_key = "AIzaSyBmik-j02ey1saUu-FTGfvvNymE94dodpU";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //FirebaseApp.initializeApp(this);
 
         editText_amount = findViewById(R.id.editText_amount);
         editText_comments = findViewById(R.id.editText_comments);
@@ -197,11 +199,11 @@ public class MainActivity extends AppCompatActivity {
             ValueRange result = null;
             service = getSheetsService();
             try {
-                result = service.spreadsheets().values().get(spreadsheetId, params[0]).execute();
+                result = service.spreadsheets().values().get(spreadsheetId, params[0]).setKey(google_api_key).execute();
             } catch (UserRecoverableAuthIOException e) {
                 startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
             } catch (IOException e) {
-                Log.e("SHEETS", "Error reading cell");
+                Log.e("SHEETS", "Error reading cell with error:" + e.toString());
                 e.printStackTrace();
             }
             return result;
@@ -280,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
                     REQUEST_PERMISSION_GET_ACCOUNTS,
                     Manifest.permission.GET_ACCOUNTS);
         }
-    }
+   }
 
     private boolean isGooglePlayServicesAvailable() {
         GoogleApiAvailability apiAvailability =
@@ -362,6 +364,7 @@ public class MainActivity extends AppCompatActivity {
         return new Sheets.Builder(transport, jsonFactory, mCredential)
                 .setApplicationName("MaNishar")
                 .build();
+
     }
 
     // add items into spinner dynamically
